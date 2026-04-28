@@ -1,7 +1,7 @@
 import sqlite3
 
 def get_connection():
-    con = sqlite3.connect('risk.db')
+    con = sqlite3.connect('bolachas.db')
     con.execute("PRAGMA foreign_keys = ON;")
     return con
 

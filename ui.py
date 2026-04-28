@@ -31,7 +31,11 @@ def _vendas():
     title_main_frame.configure(text='Venda de Produtos')
     frame = ctk.CTkFrame(main_frame)
 
-    ctk.CTkLabel(frame, text='Caixa Aberto', font=('Arial', 50), text_color='green').grid(column=0)
+    pesquisa = ctk.CTkEntry(frame, placeholder_text='Pesquise pelo produto...')
+    
+    pesquisa.grid(row=0, column=0, sticky='ew')
+
+    frame.grid(row=1, column=0, sticky='nsew')
 
 def _registrar_produto():
     title_main_frame.configure(text='Registrar Produtos')
@@ -126,6 +130,8 @@ main_frame.grid(row=1, column=0, padx=5, pady=5, sticky='nsew')
 # Título do frame
 title_main_frame = ctk.CTkLabel(main_frame, text='Sistema de Gerenciamento de lucros, estoque, pedidos...', text_color='white', bg_color=marrom_bonito, corner_radius=10)
 title_main_frame.grid(row=0, column=0, sticky='ew')
+
+_vendas()
 
 # Div de baixo / footer / rodape
 
