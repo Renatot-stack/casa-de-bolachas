@@ -215,7 +215,8 @@ def _lucro_produto():
         GROUP BY p.nome
         ORDER BY lucro_total DESC;""")
 
-def _registrar_produto(nome, preco, exige_kg):
+def _registrar_produto(nome, preco, custo, exige_kg):
     cod = _executar_retorno("INSERT INTO produtos (nome, exige_kg) VALUES (?, ?)", (nome, exige_kg))
     _executar('INSERT INTO precos (id_produto, preco) VALUES (?, ?)', (cod, preco))
+    _executar('INSERT INTO custos (id_produto, custo) VALUES (?, ?)', (cod, custo))
 

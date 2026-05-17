@@ -31,9 +31,16 @@ def _vendas():
     title_main_frame.configure(text='Venda de Produtos')
     frame = ctk.CTkFrame(main_frame)
 
+    frame.columnconfigure(0, weight=1)
+
     pesquisa = ctk.CTkEntry(frame, placeholder_text='Pesquise pelo produto...')
     
-    pesquisa.grid(row=0, column=0, sticky='ew')
+    pesquisa.grid(row=0, column=0, sticky='ew', padx=2, pady=5)
+
+    pesquisa.bind('<KeyRelease>', lambda a:print('Tá funcionando'))
+
+    resultados = ctk.CTkScrollableFrame(frame)
+    resultados.grid(row=1, column=0, sticky='ew', padx=2, pady=5)
 
     frame.grid(row=1, column=0, sticky='nsew')
 
@@ -46,22 +53,28 @@ def _registrar_produto():
     frame.rowconfigure(3, weight=1)
     
     entry_nome = ctk.CTkEntry(frame, placeholder_text="Nome...")
-    entry_nome.grid(row=1, column=0, pady=5, padx=5)
+    entry_nome.grid(row=0, column=0, pady=5, padx=5)
 
-    ctk.CTkLabel(frame, text="Produto no quilo:").grid(row=2, column=0, padx=5, pady=5)
+    ctk.CTkLabel(frame, text="Produto no quilo:").grid(row=3, column=0, padx=5, pady=5)
     exige_peso = ctk.CTkOptionMenu(frame, values=['Sim', 'Não'])
-    exige_peso.grid(row=2, column=1, padx=2, pady=5)
+    exige_peso.grid(row=3, column=1, padx=2, pady=5)
 
-    entry_preco = ctk.CTkEntry(frame, placeholder_text='Preço...')
-    entry_preco.grid(row=1, column=1, padx=2, pady=5)
+    ctk.CTkLabel(frame, text='Preço de venda:').grid(row=1, column=0, padx=2, pady=5)
+    entry_preco_venda = ctk.CTkEntry(frame, placeholder_text='Preço...')
+    entry_preco_venda.grid(row=1, column=1, padx=2, pady=5)
+
+    ctk.CTkLabel(frame, text='Preço de compra:').grid(row=2, column=0, padx=2, pady=5)
+    entry_preco_compra = ctk.CTkEntry(frame, placeholder_text='Preço...')
+    entry_preco_compra.grid(row=2, column=1, padx=2, pady=5)
 
     def __registrar_produto():
         nome = entry_nome.get()
-        preco = float(entry_preco.get().replace(',', '.'))
+        preco = float(entry_preco_venda.get().replace(',', '.'))
+        custo = float(entry_preco_compra.get().replace(',', '.'))
         exige = 1 if exige_peso.get() == 'Sim' else 0
 
         try:
-            db._registrar_produto(nome, preco, exige)
+            db._registrar_produto(nome, preco, custo, exige)
         except Exception as e:
             m_erro(e)
             return
@@ -69,7 +82,7 @@ def _registrar_produto():
         _main_frame_atualizar(_vendas)
     
     button_enviar = ctk.CTkButton(frame, text='Enviar', command= __registrar_produto)
-    button_enviar.grid(row=3, column=1, sticky='s', padx=2, pady=5)
+    button_enviar.grid(row=4, column=1, sticky='s', padx=2, pady=5)
 
     frame.grid(row=1, column=0, sticky='nsew')
 

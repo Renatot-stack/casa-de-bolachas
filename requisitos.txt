@@ -1,1 +1,4 @@
-fazer a função de vendas
+vender o produto
+Agendar pesquisa do produto
+tornar dinâmico a quantidade do produto
+Ajustar o banco para registrar as compras de novos produtos no kg ou em quantidade (pelo empresário)
