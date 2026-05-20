@@ -373,6 +373,92 @@ def _registrar_produto():
     button_enviar = ctk.CTkButton(frame, text='Enviar', command= __registrar_produto)
     button_enviar.grid(row=4, column=1, sticky='s', padx=2, pady=5)
 
+    ctk.CTkLabel(
+        frame,
+        text='Produtos cadastrados:'
+    ).grid(
+        row=5,
+        column=0,
+        columnspan=2,
+        padx=5,
+        pady=(10, 2),
+        sticky='w'
+    )
+
+    lista_produtos = ctk.CTkScrollableFrame(
+        frame,
+        height=250
+    )
+
+    lista_produtos.grid(
+        row=6,
+        column=0,
+        columnspan=2,
+        padx=5,
+        pady=5,
+        sticky='nsew'
+    )
+
+    produtos = db.listar_produtos()
+
+    for produto in produtos:
+
+        id_produto = produto[0]
+        nome = produto[1]
+        estoque = produto[3]
+        preco = produto[4]
+
+        item = ctk.CTkFrame(lista_produtos)
+
+        item.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            item,
+            text=f'ID: {id_produto}'
+        ).grid(
+            row=0,
+            column=0,
+            padx=5,
+            pady=2
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=nome
+        ).grid(
+            row=0,
+            column=1,
+            padx=5,
+            pady=2,
+            sticky='w'
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'Estoque: {estoque}'
+        ).grid(
+            row=0,
+            column=2,
+            padx=5,
+            pady=2
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'R$ {preco:.2f}'
+        ).grid(
+            row=0,
+            column=3,
+            padx=5,
+            pady=2
+        )
+
+        item.grid(
+            sticky='ew',
+            padx=2,
+            pady=2
+        )
+
     frame.grid(row=1, column=0, sticky='nsew')
 
 def _cadastrar_estoque():
