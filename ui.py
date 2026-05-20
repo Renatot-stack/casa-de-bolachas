@@ -27,6 +27,16 @@ def _main_frame_atualizar(_funcao):
             widget.destroy()
     _funcao()
 
+def deixar_clicavel(widget, comando, *parametros):
+
+    def clique(event):
+        comando(*parametros)
+
+    widget.bind('<Button-1>', clique)
+
+    for filho in widget.winfo_children():
+        filho.bind('<Button-1>', clique)
+
 def _vendas():
     title_main_frame.configure(text='Venda de Produtos')
     frame = ctk.CTkFrame(main_frame)
@@ -37,10 +47,45 @@ def _vendas():
     
     pesquisa.grid(row=0, column=0, sticky='ew', padx=2, pady=5)
 
-    pesquisa.bind('<KeyRelease>', lambda a:print('Tá funcionando'))
-
     resultados = ctk.CTkScrollableFrame(frame)
     resultados.grid(row=1, column=0, sticky='ew', padx=2, pady=5)
+
+    itens = ctk.CTkScrollableFrame(frame)
+    itens.columnconfigure(0, weight=1)
+    itens.grid(row=2, column=0, padx=2, pady=2, sticky='nsew')
+
+    def novo_item(id_produto):
+        dados = db.pesquisar_produtos_preco_id(id_produto)[0]
+        print(dados)
+        sub_widget = ctk.CTkFrame(itens)
+        sub_widget.columnconfigure(1, weight=1)
+        ctk.CTkLabel(sub_widget, text=dados[0]).grid(padx=5, pady=2, column=0, row=0)
+        ctk.CTkLabel(sub_widget, text=dados[1]).grid(padx=5, pady=2, column=1, row=0, sticky='ew')
+        ctk.CTkLabel(sub_widget, text=f"R$ {dados[2]:.2f}").grid(padx=5, pady=2, column=2, row=0)
+        quantidade = ctk.CTkEntry(sub_widget, placeholder_text='Quantidade...')
+        quantidade.grid(row=0, column=3, padx=2, pady=2)
+        ctk.CTkButton(sub_widget, text='X', width=10, corner_radius=8, fg_color='red', text_color='white', command=lambda: sub_widget.destroy()).grid(column=4, row=0, padx=5, pady=2, sticky='w')
+        sub_widget.grid(padx=2, pady=2, sticky='ew', column=0)
+
+    def pesquisar():
+        chave = pesquisa.get()
+        produtos = db.pesquisar_produtos_preco(chave)
+        for i in resultados.winfo_children():
+            i.destroy()
+        if not produtos:
+            widget = ctk.CTkFrame(resultados)
+            ctk.CTkLabel(widget, text='Nenhum produto encontrado').grid(padx=5, pady=2, sticky='nsew')
+            widget.grid(padx=5, pady=2)
+            return
+        for produto in produtos:
+            widget = ctk.CTkFrame(resultados)
+            ctk.CTkLabel(widget, text=produto[0]).grid(padx=5, pady=2, row=0, column=0)
+            ctk.CTkLabel(widget, text=produto[1]).grid(padx=5, pady=2, row=0, column=1)
+            ctk.CTkLabel(widget, text=f'R$ {produto[2]:.2f}').grid(padx=5, pady=2, row=0, column=2)
+            widget.grid(column=0, padx=5, pady=2)
+            deixar_clicavel(widget, novo_item, produto[0])
+
+    pesquisa.bind('<Return>', lambda _:(pesquisar(), print(_)))
 
     frame.grid(row=1, column=0, sticky='nsew')
 

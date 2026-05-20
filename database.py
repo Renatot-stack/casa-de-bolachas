@@ -98,7 +98,7 @@ def init_db():
             id_venda INTEGER NOT NULL,
             id_preco INTEGER NOT NULL,
             id_custo INTEGER NOT NULL,
-            quilos REAL NOT NULL DEFAULT 1 CHECK (quilos > 0),
+            quantidade REAL NOT NULL DEFAULT 1 CHECK (quantidade > 0),
             FOREIGN KEY (id_venda)
                 REFERENCES vendas(id_venda)
                 ON DELETE CASCADE,
@@ -169,6 +169,40 @@ def init_db():
         END;
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS estoque (
+            id_produto INTEGER PRIMARY KEY,
+            quantidade REAL NOT NULL DEFAULT 0
+                CHECK (quantidade >= 0),
+
+            FOREIGN KEY (id_produto)
+                REFERENCES produtos(id_produto)
+                ON DELETE CASCADE
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
+        id_mov INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        id_produto INTEGER NOT NULL,
+
+        tipo TEXT NOT NULL
+            CHECK(tipo IN ('ENTRADA', 'SAIDA')),
+
+        quantidade REAL NOT NULL
+            CHECK(quantidade > 0),
+
+        motivo TEXT,
+
+        data_mov TEXT NOT NULL
+            DEFAULT(datetime('now', 'localtime')),
+
+        FOREIGN KEY (id_produto)
+            REFERENCES produtos(id_produto)
+            ON DELETE CASCADE
+    );""")
+
     con.commit()
     con.close()
 
@@ -176,12 +210,12 @@ def _lucro_item():
     return _buscar_todos("""SELECT 
             iv.id_item,
             p.nome,
-            iv.quilos,
+            iv.quantidade,
             pr.preco,
             c.custo,
-            (iv.quilos * pr.preco) AS receita,
-            (iv.quilos * c.custo) AS despesa,
-            (iv.quilos * (pr.preco - c.custo)) AS lucro
+            (iv.quantidade * pr.preco) AS receita,
+            (iv.quantidade * c.custo) AS despesa,
+            (iv.quantidade * (pr.preco - c.custo)) AS lucro
         FROM itens_venda iv
         JOIN precos pr ON iv.id_preco = pr.id_preco
         JOIN custos c ON iv.id_custo = c.id_custo
@@ -191,9 +225,9 @@ def _lucro_venda():
     return _buscar_todos("""SELECT 
             v.id_venda,
             v.data_venda,
-            SUM(iv.quilos * pr.preco) AS receita_total,
-            SUM(iv.quilos * c.custo) AS custo_total,
-            SUM(iv.quilos * (pr.preco - c.custo)) AS lucro_total
+            SUM(iv.quantidade * pr.preco) AS receita_total,
+            SUM(iv.quantidade * c.custo) AS custo_total,
+            SUM(iv.quantidade * (pr.preco - c.custo)) AS lucro_total
         FROM vendas v
         JOIN itens_venda iv ON v.id_venda = iv.id_venda
         JOIN precos pr ON iv.id_preco = pr.id_preco
@@ -204,10 +238,10 @@ def _lucro_venda():
 def _lucro_produto():
     return _buscar_todos("""SELECT 
             p.nome,
-            SUM(iv.quilos) AS quantidade_total,
-            SUM(iv.quilos * pr.preco) AS receita_total,
-            SUM(iv.quilos * c.custo) AS custo_total,
-            SUM(iv.quilos * (pr.preco - c.custo)) AS lucro_total
+            SUM(iv.quantidade) AS quantidade_total,
+            SUM(iv.quantidade * pr.preco) AS receita_total,
+            SUM(iv.quantidade * c.custo) AS custo_total,
+            SUM(iv.quantidade * (pr.preco - c.custo)) AS lucro_total
         FROM itens_venda iv
         JOIN precos pr ON iv.id_preco = pr.id_preco
         JOIN custos c ON iv.id_custo = c.id_custo
@@ -220,3 +254,215 @@ def _registrar_produto(nome, preco, custo, exige_kg):
     _executar('INSERT INTO precos (id_produto, preco) VALUES (?, ?)', (cod, preco))
     _executar('INSERT INTO custos (id_produto, custo) VALUES (?, ?)', (cod, custo))
 
+def _pesquisar(chave):
+    return _buscar_todos('SELECT nome, id_produto FROM produtos WHERE LOWER(nome) LIKE ?', (f'%{chave.lower()}%',))
+
+def adicionar_estoque(id_produto, quantidade, motivo='Reposição'):
+    
+    produto = _buscar_um(
+        'SELECT id_produto FROM estoque WHERE id_produto = ?',
+        (id_produto,)
+    )
+
+    if produto:
+        _executar('''
+            UPDATE estoque
+            SET quantidade = quantidade + ?
+            WHERE id_produto = ?
+        ''', (quantidade, id_produto))
+
+    else:
+        _executar('''
+            INSERT INTO estoque (id_produto, quantidade)
+            VALUES (?, ?)
+        ''', (id_produto, quantidade))
+
+    _executar('''
+        INSERT INTO movimentacoes_estoque
+        (id_produto, tipo, quantidade, motivo)
+        VALUES (?, 'ENTRADA', ?, ?)
+    ''', (id_produto, quantidade, motivo))
+
+def registrar_venda(lista_produtos):
+    """lista_produtos é um dicionário como este:
+    produtos = [
+    {
+        'id_produto': 1,
+        'quantidade': 2
+    },
+    {
+        'id_produto': 3,
+        'quantidade': 0.5
+    }
+    ]
+    """
+
+    con = get_connection()
+
+    try:
+        cur = con.cursor()
+
+        # cria venda
+        cur.execute('INSERT INTO vendas DEFAULT VALUES')
+
+        id_venda = cur.lastrowid
+
+        for item in lista_produtos:
+
+            id_produto = item['id_produto']
+            quantidade = item['quantidade']
+
+            # verifica estoque
+            cur.execute('''
+                SELECT quantidade
+                FROM estoque
+                WHERE id_produto = ?
+            ''', (id_produto,))
+
+            resultado = cur.fetchone()
+
+            if not resultado:
+                raise Exception('Produto sem estoque cadastrado')
+
+            estoque_atual = resultado[0]
+
+            if estoque_atual < quantidade:
+                raise Exception(
+                    f'Estoque insuficiente para produto {id_produto}'
+                )
+
+            # pega preço ativo
+            cur.execute('''
+                SELECT id_preco
+                FROM precos
+                WHERE id_produto = ?
+                AND ativo = 1
+            ''', (id_produto,))
+
+            id_preco = cur.fetchone()[0]
+
+            # pega custo ativo
+            cur.execute('''
+                SELECT id_custo
+                FROM custos
+                WHERE id_produto = ?
+                AND ativo = 1
+            ''', (id_produto,))
+
+            id_custo = cur.fetchone()[0]
+
+            # registra item
+            cur.execute('''
+                INSERT INTO itens_venda
+                (id_venda, id_preco, id_custo, quantidade)
+                VALUES (?, ?, ?, ?)
+            ''', (
+                id_venda,
+                id_preco,
+                id_custo,
+                quantidade
+            ))
+
+            # baixa estoque
+            cur.execute('''
+                UPDATE estoque
+                SET quantidade = quantidade - ?
+                WHERE id_produto = ?
+            ''', (quantidade, id_produto))
+
+            # registra movimentação
+            cur.execute('''
+                INSERT INTO movimentacoes_estoque
+                (id_produto, tipo, quantidade, motivo)
+                VALUES (?, 'SAIDA', ?, 'VENDA')
+            ''', (id_produto, quantidade))
+
+        con.commit()
+
+    except Exception as erro:
+        con.rollback()
+        raise erro
+
+    finally:
+        con.close()
+
+def obter_preco(id_produto):
+    return _buscar_um('''
+        SELECT preco
+        FROM precos
+        WHERE id_produto = ?
+        AND ativo = 1
+    ''', (id_produto,))
+
+def listar_produtos():
+    return _buscar_todos('''
+        SELECT
+            p.id_produto,
+            p.nome,
+            p.exige_kg,
+            IFNULL(e.quantidade, 0),
+            pr.preco
+        FROM produtos p
+
+        LEFT JOIN estoque e
+            ON p.id_produto = e.id_produto
+
+        LEFT JOIN precos pr
+            ON p.id_produto = pr.id_produto
+            AND pr.ativo = 1
+
+        ORDER BY p.nome
+    ''')
+
+def listar_produtos_preco():
+    return _buscar_todos('''
+        SELECT
+            p.id_produto,
+            p.nome,
+            pr.preco
+        FROM produtos p
+
+        JOIN precos pr
+            ON p.id_produto = pr.id_produto
+
+        WHERE pr.ativo = 1
+
+        ORDER BY p.nome
+    ''')
+
+def pesquisar_produtos_preco(chave):
+    return _buscar_todos('''
+        SELECT
+            p.id_produto,
+            p.nome,
+            pr.preco
+        FROM produtos p
+
+        JOIN precos pr
+            ON p.id_produto = pr.id_produto
+
+        WHERE
+            pr.ativo = 1
+            AND LOWER(p.nome) LIKE ?
+
+        ORDER BY p.nome
+    ''', (f'%{chave.lower()}%',))
+
+def pesquisar_produtos_preco_id(chave):
+    "Retorna o id, nome e preço do produto pelo id"
+    return _buscar_todos('''
+        SELECT
+            p.id_produto,
+            p.nome,
+            pr.preco
+        FROM produtos p
+
+        JOIN precos pr
+            ON p.id_produto = pr.id_produto
+
+        WHERE
+            pr.ativo = 1
+            AND p.id_produto = ?
+
+        ORDER BY p.nome
+    ''', (chave,))
