@@ -339,7 +339,14 @@ def registrar_venda(lista_produtos):
                 AND ativo = 1
             ''', (id_produto,))
 
-            id_preco = cur.fetchone()[0]
+            resultado_preco = cur.fetchone()
+
+            if not resultado_preco:
+                raise Exception(
+                    f'Produto {id_produto} sem preço ativo'
+                )
+
+            id_preco = resultado_preco[0]
 
             # pega custo ativo
             cur.execute('''
@@ -349,7 +356,14 @@ def registrar_venda(lista_produtos):
                 AND ativo = 1
             ''', (id_produto,))
 
-            id_custo = cur.fetchone()[0]
+            resultado_custo = cur.fetchone()
+
+            if not resultado_custo:
+                raise Exception(
+                    f'Produto {id_produto} sem custo ativo'
+                )
+
+            id_custo = resultado_custo[0]
 
             # registra item
             cur.execute('''

@@ -8,6 +8,7 @@ marrom_c = "#E8AF76"
 marrom = "#BC7F43"
 marrom_e = "#43280C"
 marrom_bonito = "#724100"
+cinza = "#BDBDBD"
 
 # Inicia o Banco
 db.init_db()
@@ -38,56 +39,299 @@ def deixar_clicavel(widget, comando, *parametros):
         filho.bind('<Button-1>', clique)
 
 def _vendas():
-    title_main_frame.configure(text='Venda de Produtos')
+
+    carrinho = []
+
+    title_main_frame.configure(
+        text='Venda de Produtos'
+    )
+
     frame = ctk.CTkFrame(main_frame)
 
     frame.columnconfigure(0, weight=1)
+    frame.rowconfigure(2, weight=1)
 
-    pesquisa = ctk.CTkEntry(frame, placeholder_text='Pesquise pelo produto...')
-    
-    pesquisa.grid(row=0, column=0, sticky='ew', padx=2, pady=5)
+    pesquisa = ctk.CTkEntry(
+        frame,
+        placeholder_text='Pesquise pelo produto...'
+    )
+
+    pesquisa.grid(
+        row=0,
+        column=0,
+        sticky='ew',
+        padx=2,
+        pady=5
+    )
 
     resultados = ctk.CTkScrollableFrame(frame)
-    resultados.grid(row=1, column=0, sticky='ew', padx=2, pady=5)
 
-    itens = ctk.CTkScrollableFrame(frame)
+    resultados.grid(
+        row=1,
+        column=0,
+        sticky='ew',
+        padx=2,
+        pady=5
+    )
+
+    itens = ctk.CTkScrollableFrame(frame, fg_color=cinza)
+
     itens.columnconfigure(0, weight=1)
-    itens.grid(row=2, column=0, padx=2, pady=2, sticky='nsew')
+
+    itens.grid(
+        row=2,
+        column=0,
+        padx=2,
+        pady=2,
+        sticky='nsew'
+    )
 
     def novo_item(id_produto):
-        dados = db.pesquisar_produtos_preco_id(id_produto)[0]
-        print(dados)
+
+        dados = db.pesquisar_produtos_preco_id(
+            id_produto
+        )[0]
+
         sub_widget = ctk.CTkFrame(itens)
+
         sub_widget.columnconfigure(1, weight=1)
-        ctk.CTkLabel(sub_widget, text=dados[0]).grid(padx=5, pady=2, column=0, row=0)
-        ctk.CTkLabel(sub_widget, text=dados[1]).grid(padx=5, pady=2, column=1, row=0, sticky='ew')
-        ctk.CTkLabel(sub_widget, text=f"R$ {dados[2]:.2f}").grid(padx=5, pady=2, column=2, row=0)
-        quantidade = ctk.CTkEntry(sub_widget, placeholder_text='Quantidade...')
-        quantidade.grid(row=0, column=3, padx=2, pady=2)
-        ctk.CTkButton(sub_widget, text='X', width=10, corner_radius=8, fg_color='red', text_color='white', command=lambda: sub_widget.destroy()).grid(column=4, row=0, padx=5, pady=2, sticky='w')
-        sub_widget.grid(padx=2, pady=2, sticky='ew', column=0)
+
+        ctk.CTkLabel(
+            sub_widget,
+            text=f"ID: {dados[0]}"
+        ).grid(
+            padx=5,
+            pady=2,
+            column=0,
+            row=0
+        )
+
+        ctk.CTkLabel(
+            sub_widget,
+            text=dados[1]
+        ).grid(
+            padx=5,
+            pady=2,
+            column=1,
+            row=0,
+            sticky='ew'
+        )
+
+        ctk.CTkLabel(
+            sub_widget,
+            text=f'R$ {dados[2]:.2f}'
+        ).grid(
+            padx=5,
+            pady=2,
+            column=2,
+            row=0
+        )
+
+        quantidade = ctk.CTkEntry(
+            sub_widget,
+            placeholder_text='Quantidade...'
+        )
+
+        quantidade.insert(0, '1')
+
+        quantidade.grid(
+            row=0,
+            column=3,
+            padx=2,
+            pady=2
+        )
+
+        item = {
+            'id_produto': id_produto,
+            'quantidade_widget': quantidade,
+            'widget': sub_widget
+        }
+
+        carrinho.append(item)
+
+        def remover():
+
+            carrinho.remove(item)
+
+            sub_widget.destroy()
+
+        ctk.CTkButton(
+            sub_widget,
+            text='X',
+            width=10,
+            corner_radius=8,
+            fg_color='red',
+            text_color='white',
+            command=remover
+        ).grid(
+            column=4,
+            row=0,
+            padx=5,
+            pady=2,
+            sticky='w'
+        )
+
+        sub_widget.grid(
+            padx=2,
+            pady=2,
+            sticky='ew',
+            column=0
+        )
+
+    def finalizar_venda():
+
+        if not carrinho:
+
+            m_erro('Carrinho vazio')
+            return
+
+        produtos = []
+
+        try:
+
+            for item in carrinho:
+
+                texto = item[
+                    'quantidade_widget'
+                ].get()
+
+                quantidade = float(
+                    texto.replace(',', '.')
+                )
+
+                if quantidade <= 0:
+
+                    raise Exception(
+                        'Quantidade inválida'
+                    )
+
+                produtos.append({
+                    'id_produto': item['id_produto'],
+                    'quantidade': quantidade
+                })
+
+            db.registrar_venda(produtos)
+
+        except Exception as erro:
+
+            m_erro(erro)
+            return
+
+        m_sucesso(
+            'Venda concluída',
+            'Estoque atualizado com sucesso'
+        )
+
+        _main_frame_atualizar(_vendas)
+
+    botao_comprar = ctk.CTkButton(
+        frame,
+        text='Finalizar Venda',
+        fg_color='green',
+        hover_color='#0A5A00',
+        command=finalizar_venda
+    )
+
+    botao_comprar.grid(
+        row=3,
+        column=0,
+        padx=5,
+        pady=5,
+        sticky='ew'
+    )
+
+    janela.bind(
+        '<F5>',
+        lambda e: finalizar_venda()
+    )
 
     def pesquisar():
+
         chave = pesquisa.get()
-        produtos = db.pesquisar_produtos_preco(chave)
+
+        produtos = db.pesquisar_produtos_preco(
+            chave
+        )
+
         for i in resultados.winfo_children():
             i.destroy()
+
         if not produtos:
+
             widget = ctk.CTkFrame(resultados)
-            ctk.CTkLabel(widget, text='Nenhum produto encontrado').grid(padx=5, pady=2, sticky='nsew')
-            widget.grid(padx=5, pady=2)
+
+            ctk.CTkLabel(
+                widget,
+                text='Nenhum produto encontrado'
+            ).grid(
+                padx=5,
+                pady=2,
+                sticky='nsew'
+            )
+
+            widget.grid(
+                padx=5,
+                pady=2
+            )
+
             return
+
         for produto in produtos:
+
             widget = ctk.CTkFrame(resultados)
-            ctk.CTkLabel(widget, text=produto[0]).grid(padx=5, pady=2, row=0, column=0)
-            ctk.CTkLabel(widget, text=produto[1]).grid(padx=5, pady=2, row=0, column=1)
-            ctk.CTkLabel(widget, text=f'R$ {produto[2]:.2f}').grid(padx=5, pady=2, row=0, column=2)
-            widget.grid(column=0, padx=5, pady=2)
-            deixar_clicavel(widget, novo_item, produto[0])
 
-    pesquisa.bind('<Return>', lambda _:(pesquisar(), print(_)))
+            ctk.CTkLabel(
+                widget,
+                text=f'ID: {produto[0]}'
+            ).grid(
+                padx=5,
+                pady=2,
+                row=0,
+                column=0
+            )
 
-    frame.grid(row=1, column=0, sticky='nsew')
+            ctk.CTkLabel(
+                widget,
+                text=produto[1]
+            ).grid(
+                padx=5,
+                pady=2,
+                row=0,
+                column=1
+            )
+
+            ctk.CTkLabel(
+                widget,
+                text=f'R$ {produto[2]:.2f}'
+            ).grid(
+                padx=5,
+                pady=2,
+                row=0,
+                column=2
+            )
+
+            widget.grid(
+                column=0,
+                padx=5,
+                pady=2
+            )
+
+            deixar_clicavel(
+                widget,
+                novo_item,
+                produto[0]
+            )
+
+    pesquisa.bind(
+        '<Return>',
+        lambda _: pesquisar()
+    )
+
+    frame.grid(
+        row=1,
+        column=0,
+        sticky='nsew'
+    )
 
 def _registrar_produto():
     title_main_frame.configure(text='Registrar Produtos')
@@ -131,6 +375,205 @@ def _registrar_produto():
 
     frame.grid(row=1, column=0, sticky='nsew')
 
+def _cadastrar_estoque():
+
+    title_main_frame.configure(
+        text='Cadastrar Estoque'
+    )
+
+    frame = ctk.CTkFrame(main_frame)
+
+    frame.columnconfigure(1, weight=1)
+    frame.rowconfigure(3, weight=1)
+
+    # Produto
+    ctk.CTkLabel(
+        frame,
+        text='ID do Produto:'
+    ).grid(
+        row=0,
+        column=0,
+        padx=5,
+        pady=5
+    )
+
+    entry_id = ctk.CTkEntry(
+        frame,
+        placeholder_text='ID...'
+    )
+
+    entry_id.grid(
+        row=0,
+        column=1,
+        padx=5,
+        pady=5,
+        sticky='ew'
+    )
+
+    # Quantidade
+    ctk.CTkLabel(
+        frame,
+        text='Quantidade:'
+    ).grid(
+        row=1,
+        column=0,
+        padx=5,
+        pady=5
+    )
+
+    entry_quantidade = ctk.CTkEntry(
+        frame,
+        placeholder_text='Quantidade...'
+    )
+
+    entry_quantidade.grid(
+        row=1,
+        column=1,
+        padx=5,
+        pady=5,
+        sticky='ew'
+    )
+
+    def salvar_estoque():
+
+        try:
+
+            id_produto = int(
+                entry_id.get()
+            )
+
+            quantidade = float(
+                entry_quantidade.get().replace(',', '.')
+            )
+
+            if quantidade <= 0:
+                raise Exception(
+                    'Quantidade inválida'
+                )
+
+            db.adicionar_estoque(
+                id_produto,
+                quantidade
+            )
+
+        except Exception as erro:
+
+            m_erro(erro)
+            return
+
+        m_sucesso(
+            'Estoque atualizado',
+            'Quantidade adicionada com sucesso'
+        )
+
+        _main_frame_atualizar(_vendas)
+
+    ctk.CTkButton(
+        frame,
+        text='Salvar',
+        fg_color='green',
+        hover_color='#0A5A00',
+        command=salvar_estoque
+    ).grid(
+        row=2,
+        column=1,
+        padx=5,
+        pady=10,
+        sticky='e'
+    )
+
+    ctk.CTkLabel(
+        frame,
+        text='Produtos cadastrados:'
+    ).grid(
+        row=3,
+        column=0,
+        columnspan=2,
+        padx=5,
+        pady=(10, 2),
+        sticky='w'
+    )
+
+    lista_produtos = ctk.CTkScrollableFrame(
+        frame,
+        height=250
+    )
+
+    lista_produtos.grid(
+        row=4,
+        column=0,
+        columnspan=2,
+        padx=5,
+        pady=5,
+        sticky='nsew'
+    )
+
+    produtos = db.listar_produtos()
+
+    for produto in produtos:
+
+        id_produto = produto[0]
+        nome = produto[1]
+        estoque = produto[3]
+        preco = produto[4]
+
+        item = ctk.CTkFrame(lista_produtos)
+
+        item.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            item,
+            text=f'ID: {id_produto}'
+        ).grid(
+            row=0,
+            column=0,
+            padx=5,
+            pady=2
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=nome
+        ).grid(
+            row=0,
+            column=1,
+            padx=5,
+            pady=2,
+            sticky='w'
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'Estoque: {estoque}'
+        ).grid(
+            row=0,
+            column=2,
+            padx=5,
+            pady=2
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'R$ {preco:.2f}'
+        ).grid(
+            row=0,
+            column=3,
+            padx=5,
+            pady=2
+        )
+
+        item.grid(
+            sticky='ew',
+            padx=2,
+            pady=2
+        )
+
+    frame.grid(
+        row=1,
+        column=0,
+        sticky='nsew'
+    )
+
 # Janela principal
 janela = ctk.CTk(fg_color=marrom_c)
 janela.title('Casa de Bolachas - Sistema de Estoque')
@@ -161,19 +604,35 @@ top_frame = ctk.CTkFrame(frame_bolacha)
 top_frame.grid(row=0, column=0, padx=5, pady=5, sticky='nsew')
 
 # Para a coluna de Lucros expandir e encostar no lado direito
-top_frame.columnconfigure(2, weight=1)
+top_frame.columnconfigure(3, weight=1)
 
 # Botão registrar produto 
 registrar_prod = ctk.CTkButton(top_frame, text='Registrar Produto', fg_color=marrom_e, command=lambda: _main_frame_atualizar(_registrar_produto))
 registrar_prod.grid(row=0, column=0, padx=10, pady=10)
 
 # Botão novo pedido
-novo_pedido = ctk.CTkButton(top_frame, text='Novo Pedido', fg_color=marrom_e, command=lambda: print('heloo'))
+novo_pedido = ctk.CTkButton(top_frame, text='Novo Pedido', fg_color=marrom_e, command=lambda: _main_frame_atualizar(_vendas))
 novo_pedido.grid(row=0, column=1, padx=10, pady=10)
+
+# Botão cadastrar estoque
+cadastrar_estoque = ctk.CTkButton(
+    top_frame,
+    text='Cadastrar Estoque',
+    fg_color=marrom_e,
+    command=lambda: _main_frame_atualizar(_cadastrar_estoque)
+)
+
+cadastrar_estoque.grid(
+    row=0,
+    column=2,
+    padx=10,
+    pady=10,
+    sticky='w'
+)
 
 # Botão ver lucros
 ver_lucro = ctk.CTkButton(top_frame, text='Lucros', command=lambda: print('hello'), fg_color='green', hover_color="#072A00")
-ver_lucro.grid(row=0, column=2, padx=10, pady=10, sticky='e')
+ver_lucro.grid(row=0, column=3, padx=10, pady=10, sticky='e')
 
 # Div do meio / central / centro
 
