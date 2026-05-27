@@ -183,24 +183,34 @@ def init_db():
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
+
         id_mov INTEGER PRIMARY KEY AUTOINCREMENT,
 
         id_produto INTEGER NOT NULL,
 
         tipo TEXT NOT NULL
-            CHECK(tipo IN ('ENTRADA', 'SAIDA')),
+            CHECK(
+                tipo IN (
+                    'ENTRADA',
+                    'SAIDA',
+                    'AJUSTE'
+                )
+            ),
 
-        quantidade REAL NOT NULL
-            CHECK(quantidade > 0),
+        quantidade REAL NOT NULL,
+
+        estoque_antes REAL,
+        estoque_depois REAL,
 
         motivo TEXT,
 
         data_mov TEXT NOT NULL
-            DEFAULT(datetime('now', 'localtime')),
-
-        FOREIGN KEY (id_produto)
-            REFERENCES produtos(id_produto)
-            ON DELETE CASCADE
+            DEFAULT(
+                datetime(
+                    'now',
+                    'localtime'
+                )
+            )
     );""")
 
     con.commit()
@@ -480,3 +490,186 @@ def pesquisar_produtos_preco_id(chave):
 
         ORDER BY p.nome
     ''', (chave,))
+
+def corrigir_estoque(
+    id_produto,
+    novo_estoque,
+    motivo='Ajuste manual'
+):
+
+    con = get_connection()
+
+    try:
+
+        cur = con.cursor()
+
+        cur.execute('''
+            SELECT quantidade
+            FROM estoque
+            WHERE id_produto = ?
+        ''', (id_produto,))
+
+        resultado = cur.fetchone()
+
+        estoque_antigo = (
+            resultado[0]
+            if resultado
+            else 0
+        )
+
+        diferenca = (
+            novo_estoque
+            - estoque_antigo
+        )
+
+        if resultado:
+
+            cur.execute('''
+                UPDATE estoque
+                SET quantidade = ?
+                WHERE id_produto = ?
+            ''', (
+                novo_estoque,
+                id_produto
+            ))
+
+        else:
+
+            cur.execute('''
+                INSERT INTO estoque
+                (id_produto, quantidade)
+                VALUES (?, ?)
+            ''', (
+                id_produto,
+                novo_estoque
+            ))
+
+        cur.execute('''
+            INSERT INTO movimentacoes_estoque
+            (
+                id_produto,
+                tipo,
+                quantidade,
+                motivo
+            )
+            VALUES (
+                ?,
+                'AJUSTE',
+                ?,
+                ?
+            )
+        ''', (
+            id_produto,
+            abs(diferenca),
+            motivo
+        ))
+
+        con.commit()
+
+    except:
+
+        con.rollback()
+        raise
+
+    finally:
+
+        con.close()
+
+def lucro_por_dia():
+
+    return _buscar_todos("""
+        SELECT
+            TIME(v.data_venda) as horario,
+            SUM(iv.quantidade * (pr.preco - c.custo)) as lucro
+        FROM vendas v
+
+        JOIN itens_venda iv
+            ON v.id_venda = iv.id_venda
+
+        JOIN precos pr
+            ON iv.id_preco = pr.id_preco
+
+        JOIN custos c
+            ON iv.id_custo = c.id_custo
+
+        WHERE DATE(v.data_venda) = DATE('now', 'localtime')
+
+        GROUP BY horario
+
+        ORDER BY horario DESC
+    """)
+
+def lucro_por_semana():
+
+    return _buscar_todos("""
+        SELECT
+            DATE(v.data_venda) as dia,
+            SUM(iv.quantidade * (pr.preco - c.custo)) as lucro
+        FROM vendas v
+
+        JOIN itens_venda iv
+            ON v.id_venda = iv.id_venda
+
+        JOIN precos pr
+            ON iv.id_preco = pr.id_preco
+
+        JOIN custos c
+            ON iv.id_custo = c.id_custo
+
+        WHERE DATE(v.data_venda)
+            >= DATE('now', '-6 days')
+
+        GROUP BY dia
+
+        ORDER BY dia DESC
+    """)
+
+def lucro_por_mes():
+
+    return _buscar_todos("""
+        SELECT
+            DATE(v.data_venda) as dia,
+            SUM(iv.quantidade * (pr.preco - c.custo)) as lucro
+        FROM vendas v
+
+        JOIN itens_venda iv
+            ON v.id_venda = iv.id_venda
+
+        JOIN precos pr
+            ON iv.id_preco = pr.id_preco
+
+        JOIN custos c
+            ON iv.id_custo = c.id_custo
+
+        WHERE strftime('%Y-%m', v.data_venda)
+            = strftime('%Y-%m', 'now')
+
+        GROUP BY dia
+
+        ORDER BY dia DESC
+    """)
+
+def lucro_por_ano():
+
+    return _buscar_todos("""
+        SELECT
+            strftime('%m', v.data_venda) as mes,
+            SUM(iv.quantidade * (pr.preco - c.custo)) as lucro
+        FROM vendas v
+
+        JOIN itens_venda iv
+            ON v.id_venda = iv.id_venda
+
+        JOIN precos pr
+            ON iv.id_preco = pr.id_preco
+
+        JOIN custos c
+            ON iv.id_custo = c.id_custo
+
+        WHERE strftime('%Y', v.data_venda)
+            = strftime('%Y', 'now')
+
+        GROUP BY mes
+
+        ORDER BY mes DESC
+    """)

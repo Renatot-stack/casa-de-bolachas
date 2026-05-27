@@ -660,6 +660,273 @@ def _cadastrar_estoque():
         sticky='nsew'
     )
 
+def _lucros():
+
+    title_main_frame.configure(
+        text='Lucros'
+    )
+
+    frame = ctk.CTkFrame(main_frame)
+
+    frame.columnconfigure(0, weight=1)
+    frame.rowconfigure(1, weight=1)
+
+    botoes = ctk.CTkFrame(frame)
+
+    botoes.grid(
+        row=0,
+        column=0,
+        padx=5,
+        pady=5,
+        sticky='ew'
+    )
+
+    resultados = ctk.CTkScrollableFrame(frame)
+
+    resultados.grid(
+        row=1,
+        column=0,
+        padx=5,
+        pady=5,
+        sticky='nsew'
+    )
+
+    def limpar():
+
+        for widget in resultados.winfo_children():
+            widget.destroy()
+
+    def mostrar_dia():
+
+        limpar()
+
+        dados = db.lucro_por_dia()
+
+        total = 0
+
+        for horario, lucro in dados:
+
+            total += lucro
+
+            item = ctk.CTkFrame(resultados)
+
+            ctk.CTkLabel(
+                item,
+                text=f'Hora: {horario}'
+            ).grid(
+                row=0,
+                column=0,
+                padx=5,
+                pady=5
+            )
+
+            ctk.CTkLabel(
+                item,
+                text=f'Lucro: R$ {lucro:.2f}'
+            ).grid(
+                row=0,
+                column=1,
+                padx=5,
+                pady=5
+            )
+
+            item.pack(
+                fill='x',
+                padx=2,
+                pady=2
+            )
+
+        ctk.CTkLabel(
+            resultados,
+            text=f'Lucro Total do Dia: R$ {total:.2f}',
+            font=('Arial', 18)
+        ).pack(pady=10)
+
+    def mostrar_semana():
+
+        limpar()
+
+        dados = db.lucro_por_semana()
+
+        total = 0
+
+        for dia, lucro in dados:
+
+            total += lucro
+
+            item = ctk.CTkFrame(resultados)
+
+            ctk.CTkLabel(
+                item,
+                text=f'Dia: {dia}'
+            ).grid(
+                row=0,
+                column=0,
+                padx=5,
+                pady=5
+            )
+
+            ctk.CTkLabel(
+                item,
+                text=f'Lucro: R$ {lucro:.2f}'
+            ).grid(
+                row=0,
+                column=1,
+                padx=5,
+                pady=5
+            )
+
+            item.pack(
+                fill='x',
+                padx=2,
+                pady=2
+            )
+
+        ctk.CTkLabel(
+            resultados,
+            text=f'Lucro Total Desta Semana: R$ {total:.2f}',
+            font=('Arial', 18)
+        ).pack(pady=10)
+
+    def mostrar_mes():
+
+        limpar()
+
+        dados = db.lucro_por_mes()
+
+        total = 0
+
+        for dia, lucro in dados:
+
+            total += lucro
+
+            item = ctk.CTkFrame(resultados)
+
+            ctk.CTkLabel(
+                item,
+                text=f'Dia: {dia}'
+            ).grid(
+                row=0,
+                column=0,
+                padx=5,
+                pady=5
+            )
+
+            ctk.CTkLabel(
+                item,
+                text=f'Lucro: R$ {lucro:.2f}'
+            ).grid(
+                row=0,
+                column=1,
+                padx=5,
+                pady=5
+            )
+
+            item.pack(
+                fill='x',
+                padx=2,
+                pady=2
+            )
+
+        ctk.CTkLabel(
+            resultados,
+            text=f'Lucro Total Deste Mês: R$ {total:.2f}',
+            font=('Arial', 18)
+        ).pack(pady=10)
+
+    def mostrar_ano():
+
+        limpar()
+
+        meses = {
+            '01': 'Janeiro',
+            '02': 'Fevereiro',
+            '03': 'Março',
+            '04': 'Abril',
+            '05': 'Maio',
+            '06': 'Junho',
+            '07': 'Julho',
+            '08': 'Agosto',
+            '09': 'Setembro',
+            '10': 'Outubro',
+            '11': 'Novembro',
+            '12': 'Dezembro'
+        }
+
+        dados = db.lucro_por_ano()
+
+        total = 0
+
+        for mes, lucro in dados:
+
+            total += lucro
+
+            item = ctk.CTkFrame(resultados)
+
+            ctk.CTkLabel(
+                item,
+                text=f'Mês: {meses[mes]}'
+            ).grid(
+                row=0,
+                column=0,
+                padx=5,
+                pady=5
+            )
+
+            ctk.CTkLabel(
+                item,
+                text=f'Lucro: R$ {lucro:.2f}'
+            ).grid(
+                row=0,
+                column=1,
+                padx=5,
+                pady=5
+            )
+
+            item.pack(
+                fill='x',
+                padx=2,
+                pady=2
+            )
+
+        ctk.CTkLabel(
+            resultados,
+            text=f'Lucro Total Deste Ano: R$ {total:.2f}',
+            font=('Arial', 18)
+        ).pack(pady=10)
+
+    ctk.CTkButton(
+        botoes,
+        text='Dia',
+        command=mostrar_dia
+    ).pack(side='left', padx=5)
+
+    ctk.CTkButton(
+        botoes,
+        text='Week',
+        command=mostrar_semana
+    ).pack(side='left', padx=5)
+
+    ctk.CTkButton(
+        botoes,
+        text='Mês',
+        command=mostrar_mes
+    ).pack(side='left', padx=5)
+
+    ctk.CTkButton(
+        botoes,
+        text='Ano',
+        command=mostrar_ano
+    ).pack(side='left', padx=5)
+
+    mostrar_dia()
+
+    frame.grid(
+        row=1,
+        column=0,
+        sticky='nsew'
+    )
+
 # Janela principal
 janela = ctk.CTk(fg_color=marrom_c)
 janela.title('Casa de Bolachas - Sistema de Estoque')
@@ -717,7 +984,13 @@ cadastrar_estoque.grid(
 )
 
 # Botão ver lucros
-ver_lucro = ctk.CTkButton(top_frame, text='Lucros', command=lambda: print('hello'), fg_color='green', hover_color="#072A00")
+ver_lucro = ctk.CTkButton(
+    top_frame,
+    text='Lucros',
+    command=lambda: _main_frame_atualizar(_lucros),
+    fg_color='green',
+    hover_color="#072A00"
+)
 ver_lucro.grid(row=0, column=3, padx=10, pady=10, sticky='e')
 
 # Div do meio / central / centro
