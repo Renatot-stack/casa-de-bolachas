@@ -38,6 +38,28 @@ def deixar_clicavel(widget, comando, *parametros):
     for filho in widget.winfo_children():
         filho.bind('<Button-1>', clique)
 
+def verificar_estoque_baixo():
+
+    produtos = db.produtos_estoque_baixo()
+
+    if not produtos:
+        return
+
+    mensagem = ""
+
+    for produto in produtos:
+
+        mensagem += (
+            f"{produto[1]} "
+            f"({produto[2]})\n"
+        )
+
+    CTkMessagebox(
+        title="⚠ Estoque Baixo",
+        message=mensagem,
+        icon="warning"
+    )
+
 def _vendas():
 
     carrinho = []
@@ -85,6 +107,45 @@ def _vendas():
         pady=2,
         sticky='nsew'
     )
+
+    total_label = ctk.CTkLabel(
+        frame,
+        text='Total: R$ 0,00',
+        font=('Arial', 18, 'bold')
+    )
+
+    total_label.grid(
+        row=3,
+        column=0,
+        padx=5,
+        pady=5,
+        sticky='e'
+    )
+
+    def atualizar_total():
+
+        total = 0
+
+        for item in carrinho:
+
+            try:
+
+                quantidade = float(
+                    item['quantidade_widget']
+                    .get()
+                    .replace(',', '.')
+                )
+
+                preco = item['preco']
+
+                total += quantidade * preco
+
+            except:
+                pass
+
+        total_label.configure(
+            text=f'Total: R$ {total:.2f}'
+        )
 
     def novo_item(id_produto):
 
@@ -140,20 +201,28 @@ def _vendas():
             padx=2,
             pady=2
         )
+        quantidade.bind(
+            '<KeyRelease>',
+            lambda e: atualizar_total()
+        )
 
         item = {
             'id_produto': id_produto,
             'quantidade_widget': quantidade,
-            'widget': sub_widget
+            'widget': sub_widget,
+            'preco': dados[2]
         }
 
         carrinho.append(item)
+        atualizar_total()
 
         def remover():
 
             carrinho.remove(item)
 
             sub_widget.destroy()
+
+            atualizar_total()
 
         ctk.CTkButton(
             sub_widget,
@@ -211,6 +280,9 @@ def _vendas():
                 })
 
             db.registrar_venda(produtos)
+            atualizar_historico()
+            atualizar_alertas()
+            verificar_estoque_baixo()
 
         except Exception as erro:
 
@@ -233,7 +305,7 @@ def _vendas():
     )
 
     botao_comprar.grid(
-        row=3,
+        row=4,
         column=0,
         padx=5,
         pady=5,
@@ -332,6 +404,7 @@ def _vendas():
         column=0,
         sticky='nsew'
     )
+    pesquisar()
 
 def _registrar_produto():
     title_main_frame.configure(text='Registrar Produtos')
@@ -660,6 +733,170 @@ def _cadastrar_estoque():
         sticky='nsew'
     )
 
+def _configuracoes():
+
+    title_main_frame.configure(
+        text='Configurações'
+    )
+
+    frame = ctk.CTkFrame(main_frame)
+
+    frame.columnconfigure(1, weight=1)
+
+    ctk.CTkLabel(
+        frame,
+        text='ID do Produto:'
+    ).grid(row=0, column=0, padx=5, pady=5)
+
+    entry_id = ctk.CTkEntry(frame)
+    entry_id.grid(row=0, column=1, padx=5, pady=5)
+
+    ctk.CTkLabel(
+        frame,
+        text='Estoque mínimo:'
+    ).grid(row=1, column=0, padx=5, pady=5)
+
+    entry_minimo = ctk.CTkEntry(frame)
+    entry_minimo.grid(row=1, column=1, padx=5, pady=5)
+
+    def carregar():
+
+        try:
+
+            dados = db.obter_configuracao_produto(
+                int(entry_id.get())
+            )
+
+            if not dados:
+                raise Exception(
+                    'Produto não encontrado'
+                )
+
+            entry_minimo.delete(0, 'end')
+
+            entry_minimo.insert(
+                0,
+                str(dados[0])
+            )
+
+        except Exception as erro:
+
+            m_erro(erro)
+
+    def salvar():
+
+        try:
+
+            db.atualizar_estoque_minimo(
+                int(entry_id.get()),
+                float(
+                    entry_minimo.get()
+                    .replace(',', '.')
+                )
+            )
+
+        except Exception as erro:
+
+            m_erro(erro)
+            return
+
+        m_sucesso(
+            'Configurações',
+            'Salvo com sucesso'
+        )
+        atualizar_alertas()
+    ctk.CTkButton(
+        frame,
+        text='Carregar',
+        command=carregar
+    ).grid(row=2, column=0, padx=5, pady=5)
+
+    ctk.CTkButton(
+        frame,
+        text='Salvar',
+        command=salvar
+    ).grid(row=2, column=1, padx=5, pady=5)
+    frame.grid(
+        row=1,
+        column=0,
+        sticky='nsew'
+    )
+
+    lista_produtos = ctk.CTkScrollableFrame(
+        frame,
+        height=250
+    )
+
+    lista_produtos.grid(
+        row=4,
+        column=0,
+        columnspan=2,
+        padx=5,
+        pady=5,
+        sticky='nsew'
+    )
+
+    produtos = db.listar_produtos()
+
+    for produto in produtos:
+
+        id_produto = produto[0]
+        nome = produto[1]
+        estoque = produto[3]
+        preco = produto[4]
+
+        item = ctk.CTkFrame(lista_produtos)
+
+        item.columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            item,
+            text=f'ID: {id_produto}'
+        ).grid(
+            row=0,
+            column=0,
+            padx=5,
+            pady=2
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=nome
+        ).grid(
+            row=0,
+            column=1,
+            padx=5,
+            pady=2,
+            sticky='w'
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'Estoque: {estoque}'
+        ).grid(
+            row=0,
+            column=2,
+            padx=5,
+            pady=2
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'R$ {preco:.2f}'
+        ).grid(
+            row=0,
+            column=3,
+            padx=5,
+            pady=2
+        )
+
+        item.grid(
+            sticky='ew',
+            padx=2,
+            pady=2
+        )
+
+
 def _lucros():
 
     title_main_frame.configure(
@@ -927,6 +1164,158 @@ def _lucros():
         sticky='nsew'
     )
 
+def atualizar_historico():
+
+    for widget in historico_frame.winfo_children():
+        widget.destroy()
+
+    vendas = db.ultimas_vendas()
+
+    if not vendas:
+
+        ctk.CTkLabel(
+            historico_frame,
+            text='Nenhuma venda registrada'
+        ).pack(
+            pady=10
+        )
+
+        return
+
+    for venda in vendas:
+
+        id_venda = venda[0]
+        data = venda[1]
+        total = venda[2]
+
+        item = ctk.CTkFrame(
+            historico_frame
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'Pedido #{id_venda}'
+        ).pack(
+            anchor='w',
+            padx=5,
+            pady=(5,0)
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=data
+        ).pack(
+            anchor='w',
+            padx=5
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'R$ {total:.2f}',
+            text_color='green'
+        ).pack(
+            anchor='w',
+            padx=5,
+            pady=(0,5)
+        )
+
+        item.pack(
+            fill='x',
+            padx=2,
+            pady=2
+        )
+
+def abrir_alertas():
+
+    produtos = db.produtos_estoque_baixo()
+
+    janela_alertas = ctk.CTkToplevel(janela)
+
+    janela_alertas.title(
+        'Produtos com Estoque Baixo'
+    )
+
+    janela_alertas.geometry(
+        '450x300'
+    )
+
+    lista = ctk.CTkScrollableFrame(
+        janela_alertas
+    )
+
+    lista.pack(
+        fill='both',
+        expand=True,
+        padx=10,
+        pady=10
+    )
+
+    if not produtos:
+
+        ctk.CTkLabel(
+            lista,
+            text='Nenhum alerta encontrado.'
+        ).pack(
+            pady=20
+        )
+
+        return
+
+    for produto in produtos:
+
+        item = ctk.CTkFrame(lista)
+
+        ctk.CTkLabel(
+            item,
+            text=produto[1],
+            font=('Arial', 16)
+        ).pack(
+            anchor='w',
+            padx=5,
+            pady=(5,0)
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'Estoque: {produto[2]}'
+        ).pack(
+            anchor='w',
+            padx=5
+        )
+
+        ctk.CTkLabel(
+            item,
+            text=f'Mínimo: {produto[3]}'
+        ).pack(
+            anchor='w',
+            padx=5,
+            pady=(0,5)
+        )
+
+        item.pack(
+            fill='x',
+            padx=5,
+            pady=5
+        )
+
+def atualizar_alertas():
+    
+    produtos = db.produtos_estoque_baixo()
+
+    total = len(produtos)
+
+    if total == 0:
+
+        alerta_btn.configure(
+            text='✅ Estoque OK'
+        )
+
+    else:
+
+        alerta_btn.configure(
+            text=f'⚠️ {total} alerta(s)'
+        )
+
 # Janela principal
 janela = ctk.CTk(fg_color=marrom_c)
 janela.title('Casa de Bolachas - Sistema de Estoque')
@@ -1025,11 +1414,68 @@ right_frame.grid(row=1, column=1, sticky='nse', pady=5, padx=5)
 config_frame = ctk.CTkFrame(right_frame)
 config_frame.grid(row=0, column=0, padx=2, pady=2, sticky='ew')
 
-# Preços
-config = ctk.CTkButton(config_frame, text='⚙️', font=('Arial', 20))
-config.grid(row=0, column=0, sticky='e')
+config_frame.columnconfigure(0, weight=1)
 
+ctk.CTkLabel(
+    config_frame,
+    text='📜 Histórico',
+    font=('Arial', 18)
+).grid(
+    row=0,
+    column=0,
+    padx=5,
+    pady=5,
+    sticky='w'
+)
+historico_frame = ctk.CTkScrollableFrame(
+    right_frame,
+    width=280
+)
+
+historico_frame.grid(
+    row=1,
+    column=0,
+    padx=5,
+    pady=5,
+    sticky='nsew'
+)
+
+right_frame.rowconfigure(
+    1,
+    weight=1
+)
+configuracoes = ctk.CTkButton(
+    top_frame,
+    text='Configurações',
+    fg_color=marrom_e,
+    command=lambda:
+        _main_frame_atualizar(
+            _configuracoes
+        )
+)
+
+configuracoes.grid(
+    row=0,
+    column=4,
+    padx=10,
+    pady=10
+)
 # Texto de teste
-ctk.CTkButton(down_frame, text='Em caso de erros, entrar em contato com +55 81 99127-2066', fg_color='transparent',hover_color='orange', text_color='black', command=lambda: webbrowser.open('https://wa.me/5581991272066?text=')).pack(padx=2, pady=2)
+ctk.CTkButton(down_frame, text='Em caso de erros, entrar em contato com +55 81 99127-2066', fg_color='transparent',hover_color='orange', text_color='black', command=lambda: webbrowser.open('https://wa.me/5581991272066?text=')).pack(side='left',padx=2, pady=2)
 
+alerta_btn = ctk.CTkButton(
+    down_frame,
+    text='✅ Estoque OK',
+    fg_color='orange',
+    text_color='black',
+    command=abrir_alertas
+)
+
+alerta_btn.pack(
+    side='bottom',
+    padx=5,
+    pady=5
+)
+
+atualizar_historico()
 janela.mainloop()

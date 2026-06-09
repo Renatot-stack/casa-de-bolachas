@@ -182,6 +182,18 @@ def init_db():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS configuracoes_produto (
+            id_produto INTEGER PRIMARY KEY,
+
+            estoque_minimo REAL NOT NULL DEFAULT 5,
+
+            FOREIGN KEY (id_produto)
+                REFERENCES produtos(id_produto)
+                ON DELETE CASCADE
+        );
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS movimentacoes_estoque (
 
         id_mov INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -260,9 +272,30 @@ def _lucro_produto():
         ORDER BY lucro_total DESC;""")
 
 def _registrar_produto(nome, preco, custo, exige_kg):
-    cod = _executar_retorno("INSERT INTO produtos (nome, exige_kg) VALUES (?, ?)", (nome, exige_kg))
-    _executar('INSERT INTO precos (id_produto, preco) VALUES (?, ?)', (cod, preco))
-    _executar('INSERT INTO custos (id_produto, custo) VALUES (?, ?)', (cod, custo))
+
+    cod = _executar_retorno(
+        "INSERT INTO produtos (nome, exige_kg) VALUES (?, ?)",
+        (nome, exige_kg)
+    )
+
+    _executar(
+        'INSERT INTO precos (id_produto, preco) VALUES (?, ?)',
+        (cod, preco)
+    )
+
+    _executar(
+        'INSERT INTO custos (id_produto, custo) VALUES (?, ?)',
+        (cod, custo)
+    )
+
+    _executar(
+        '''
+        INSERT INTO configuracoes_produto
+        (id_produto, estoque_minimo)
+        VALUES (?, 5)
+        ''',
+        (cod,)
+    )
 
 def _pesquisar(chave):
     return _buscar_todos('SELECT nome, id_produto FROM produtos WHERE LOWER(nome) LIKE ?', (f'%{chave.lower()}%',))
@@ -673,3 +706,70 @@ def lucro_por_ano():
 
         ORDER BY mes DESC
     """)
+
+def obter_configuracao_produto(id_produto):
+
+    return _buscar_um("""
+        SELECT estoque_minimo
+        FROM configuracoes_produto
+        WHERE id_produto = ?
+    """, (id_produto,))
+
+def atualizar_estoque_minimo(
+    id_produto,
+    estoque_minimo
+):
+
+    _executar("""
+        UPDATE configuracoes_produto
+        SET estoque_minimo = ?
+        WHERE id_produto = ?
+    """, (
+        estoque_minimo,
+        id_produto
+    ))
+
+def produtos_estoque_baixo():
+
+    return _buscar_todos("""
+        SELECT
+            p.id_produto,
+            p.nome,
+            e.quantidade,
+            cp.estoque_minimo
+
+        FROM produtos p
+
+        JOIN estoque e
+            ON p.id_produto = e.id_produto
+
+        JOIN configuracoes_produto cp
+            ON p.id_produto = cp.id_produto
+
+        WHERE e.quantidade <= cp.estoque_minimo
+
+        ORDER BY e.quantidade ASC
+    """)
+
+def ultimas_vendas(limite=20):
+
+    return _buscar_todos("""
+        SELECT
+            v.id_venda,
+            v.data_venda,
+            SUM(iv.quantidade * pr.preco) AS total
+
+        FROM vendas v
+
+        JOIN itens_venda iv
+            ON v.id_venda = iv.id_venda
+
+        JOIN precos pr
+            ON iv.id_preco = pr.id_preco
+
+        GROUP BY v.id_venda
+
+        ORDER BY v.data_venda DESC
+
+        LIMIT ?
+    """, (limite,))
