@@ -22,6 +22,81 @@ def m_sucesso(title, message):
 
 # Funções:
 
+def produtos_cadastrados(f):
+        lista_produtos = ctk.CTkScrollableFrame(
+            f,
+            height=250
+        )
+
+        lista_produtos.grid(
+            row=6,
+            column=0,
+            columnspan=2,
+            padx=5,
+            pady=5,
+            sticky='nsew'
+        )
+
+        produtos = db.listar_produtos()
+
+        for produto in produtos:
+
+            id_produto = produto[0]
+            nome = produto[1]
+            estoque = produto[3]
+            preco = produto[4]
+
+            item = ctk.CTkFrame(lista_produtos)
+
+            item.columnconfigure(1, weight=1)
+
+            ctk.CTkLabel(
+                item,
+                text=f'ID: {id_produto}'
+            ).grid(
+                row=0,
+                column=0,
+                padx=5,
+                pady=2
+            )
+
+            ctk.CTkLabel(
+                item,
+                text=nome
+            ).grid(
+                row=0,
+                column=1,
+                padx=5,
+                pady=2,
+                sticky='w'
+            )
+
+            ctk.CTkLabel(
+                item,
+                text=f'Estoque: {estoque}'
+            ).grid(
+                row=0,
+                column=2,
+                padx=5,
+                pady=2
+            )
+
+            ctk.CTkLabel(
+                item,
+                text=f'R$ {preco:.2f}'
+            ).grid(
+                row=0,
+                column=3,
+                padx=5,
+                pady=2
+            )
+
+            item.grid(
+                sticky='ew',
+                padx=2,
+                pady=2
+            )
+
 def _main_frame_atualizar(_funcao):
     for i, widget in enumerate(main_frame.winfo_children()):
         if i != 0:
@@ -458,80 +533,7 @@ def _registrar_produto():
         sticky='w'
     )
 
-    lista_produtos = ctk.CTkScrollableFrame(
-        frame,
-        height=250
-    )
-
-    lista_produtos.grid(
-        row=6,
-        column=0,
-        columnspan=2,
-        padx=5,
-        pady=5,
-        sticky='nsew'
-    )
-
-    produtos = db.listar_produtos()
-
-    for produto in produtos:
-
-        id_produto = produto[0]
-        nome = produto[1]
-        estoque = produto[3]
-        preco = produto[4]
-
-        item = ctk.CTkFrame(lista_produtos)
-
-        item.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(
-            item,
-            text=f'ID: {id_produto}'
-        ).grid(
-            row=0,
-            column=0,
-            padx=5,
-            pady=2
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=nome
-        ).grid(
-            row=0,
-            column=1,
-            padx=5,
-            pady=2,
-            sticky='w'
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=f'Estoque: {estoque}'
-        ).grid(
-            row=0,
-            column=2,
-            padx=5,
-            pady=2
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=f'R$ {preco:.2f}'
-        ).grid(
-            row=0,
-            column=3,
-            padx=5,
-            pady=2
-        )
-
-        item.grid(
-            sticky='ew',
-            padx=2,
-            pady=2
-        )
-
+    produtos_cadastrados(frame)
     frame.grid(row=1, column=0, sticky='nsew')
 
 def _cadastrar_estoque():
@@ -653,79 +655,7 @@ def _cadastrar_estoque():
         sticky='w'
     )
 
-    lista_produtos = ctk.CTkScrollableFrame(
-        frame,
-        height=250
-    )
-
-    lista_produtos.grid(
-        row=4,
-        column=0,
-        columnspan=2,
-        padx=5,
-        pady=5,
-        sticky='nsew'
-    )
-
-    produtos = db.listar_produtos()
-
-    for produto in produtos:
-
-        id_produto = produto[0]
-        nome = produto[1]
-        estoque = produto[3]
-        preco = produto[4]
-
-        item = ctk.CTkFrame(lista_produtos)
-
-        item.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(
-            item,
-            text=f'ID: {id_produto}'
-        ).grid(
-            row=0,
-            column=0,
-            padx=5,
-            pady=2
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=nome
-        ).grid(
-            row=0,
-            column=1,
-            padx=5,
-            pady=2,
-            sticky='w'
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=f'Estoque: {estoque}'
-        ).grid(
-            row=0,
-            column=2,
-            padx=5,
-            pady=2
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=f'R$ {preco:.2f}'
-        ).grid(
-            row=0,
-            column=3,
-            padx=5,
-            pady=2
-        )
-
-        item.grid(
-            sticky='ew',
-            padx=2,
-            pady=2
-        )
+    produtos_cadastrados(frame)
 
     frame.grid(
         row=1,
@@ -737,6 +667,71 @@ def _configuracoes():
 
     title_main_frame.configure(
         text='Configurações'
+    )
+
+    frame = ctk.CTkFrame(main_frame)
+
+    frame.columnconfigure(0, weight=1)
+
+    ctk.CTkButton(
+        frame,
+        text='Ajuste Manual de Estoque',
+        height=50,
+        command=lambda:
+            _main_frame_atualizar(
+                _ajuste_manual
+            )
+    ).grid(
+        row=0,
+        column=0,
+        padx=20,
+        pady=10,
+        sticky='ew'
+    )
+
+    ctk.CTkButton(
+        frame,
+        text='Estornar Pedido',
+        height=50,
+        fg_color='red',
+        command=lambda:
+            _main_frame_atualizar(
+                _estornar_pedido
+            )
+    ).grid(
+        row=1,
+        column=0,
+        padx=20,
+        pady=10,
+        sticky='ew'
+    )
+
+    ctk.CTkButton(
+        frame,
+        text='Estoque Mínimo',
+        height=50,
+        command=lambda:
+            _main_frame_atualizar(
+                _estoque_minimo
+            )
+    ).grid(
+        row=2,
+        column=0,
+        padx=20,
+        pady=10,
+        sticky='ew'
+    )
+
+    frame.grid(
+        row=1,
+        column=0,
+        sticky='nsew'
+    )
+
+def _estoque_minimo():
+
+    title_main_frame.configure(
+        text='Estoque Mínimo'
     )
 
     frame = ctk.CTkFrame(main_frame)
@@ -822,79 +817,7 @@ def _configuracoes():
         sticky='nsew'
     )
 
-    lista_produtos = ctk.CTkScrollableFrame(
-        frame,
-        height=250
-    )
-
-    lista_produtos.grid(
-        row=4,
-        column=0,
-        columnspan=2,
-        padx=5,
-        pady=5,
-        sticky='nsew'
-    )
-
-    produtos = db.listar_produtos()
-
-    for produto in produtos:
-
-        id_produto = produto[0]
-        nome = produto[1]
-        estoque = produto[3]
-        preco = produto[4]
-
-        item = ctk.CTkFrame(lista_produtos)
-
-        item.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(
-            item,
-            text=f'ID: {id_produto}'
-        ).grid(
-            row=0,
-            column=0,
-            padx=5,
-            pady=2
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=nome
-        ).grid(
-            row=0,
-            column=1,
-            padx=5,
-            pady=2,
-            sticky='w'
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=f'Estoque: {estoque}'
-        ).grid(
-            row=0,
-            column=2,
-            padx=5,
-            pady=2
-        )
-
-        ctk.CTkLabel(
-            item,
-            text=f'R$ {preco:.2f}'
-        ).grid(
-            row=0,
-            column=3,
-            padx=5,
-            pady=2
-        )
-
-        item.grid(
-            sticky='ew',
-            padx=2,
-            pady=2
-        )
+    produtos_cadastrados(frame)
 
 
 def _lucros():
@@ -1307,14 +1230,173 @@ def atualizar_alertas():
     if total == 0:
 
         alerta_btn.configure(
-            text='✅ Estoque OK'
+            text='Estoque OK',
+            fg_color='green',
+            text_color='white'
         )
 
     else:
 
         alerta_btn.configure(
-            text=f'⚠️ {total} alerta(s)'
+            text=f'⚠️ {total} alerta(s)',
+            fg_color='orange',
+            text_color='black'
         )
+
+def _estornar_pedido():
+
+    title_main_frame.configure(
+        text='Estornar Pedido'
+    )
+
+    frame = ctk.CTkFrame(main_frame)
+
+    frame.columnconfigure(0, weight=1)
+
+    ctk.CTkLabel(
+        frame,
+        text='ID da Venda'
+    ).grid(
+        row=0,
+        column=0,
+        padx=5,
+        pady=5
+    )
+
+    entry_id = ctk.CTkEntry(frame)
+
+    entry_id.grid(
+        row=1,
+        column=0,
+        padx=5,
+        pady=5,
+        sticky='ew'
+    )
+
+    def estornar():
+
+        resposta = CTkMessagebox(
+            title="Confirmar",
+            message=f"Estornar venda #{entry_id.get()}?",
+            icon="question",
+            option_1="Não",
+            option_2="Sim"
+        )
+
+        if resposta.get() != "Sim":
+            return
+
+        try:
+
+            db.estornar_venda(
+                int(entry_id.get())
+            )
+
+            atualizar_historico()
+            atualizar_alertas()
+
+        except Exception as erro:
+
+            m_erro(erro)
+            return
+
+        m_sucesso(
+            'Estorno',
+            'Venda cancelada'
+        )
+
+        _main_frame_atualizar(
+            _estornar_pedido
+        )
+
+    ctk.CTkButton(
+        frame,
+        text='Estornar',
+        fg_color='red',
+        command=estornar
+    ).grid(
+        row=2,
+        column=0,
+        padx=5,
+        pady=5
+    )
+
+    frame.grid(
+        row=1,
+        column=0,
+        sticky='nsew'
+    )
+
+def _ajuste_manual():
+
+    title_main_frame.configure(
+        text='Ajuste Manual'
+    )
+
+    frame = ctk.CTkFrame(main_frame)
+
+    frame.columnconfigure(1, weight=1)
+
+    ctk.CTkLabel(
+        frame,
+        text='ID Produto'
+    ).grid(row=0, column=0, padx=5, pady=5)
+
+    entry_id = ctk.CTkEntry(frame)
+    entry_id.grid(row=0, column=1, padx=5, pady=5)
+
+    ctk.CTkLabel(
+        frame,
+        text='Novo Estoque'
+    ).grid(row=1, column=0, padx=5, pady=5)
+
+    entry_estoque = ctk.CTkEntry(frame)
+    entry_estoque.grid(row=1, column=1, padx=5, pady=5)
+
+    def salvar():
+
+        try:
+
+            db.corrigir_estoque(
+                int(entry_id.get()),
+                float(
+                    entry_estoque.get()
+                    .replace(',', '.')
+                )
+            )
+
+            atualizar_alertas()
+
+        except Exception as erro:
+
+            m_erro(erro)
+            return
+
+        m_sucesso(
+            'Ajuste',
+            'Estoque corrigido'
+        )
+
+        _main_frame_atualizar(_vendas)
+
+    ctk.CTkButton(
+        frame,
+        text='Salvar',
+        command=salvar
+    ).grid(
+        row=2,
+        column=1,
+        pady=5,
+        padx=5
+    )
+
+    produtos_cadastrados(frame)
+
+    frame.grid(
+        row=1,
+        column=0,
+        sticky='nsew'
+    )
 
 # Janela principal
 janela = ctk.CTk(fg_color=marrom_c)
@@ -1477,5 +1559,6 @@ alerta_btn.pack(
     pady=5
 )
 
+atualizar_alertas()
 atualizar_historico()
 janela.mainloop()

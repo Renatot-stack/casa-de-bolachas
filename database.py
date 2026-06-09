@@ -773,3 +773,77 @@ def ultimas_vendas(limite=20):
 
         LIMIT ?
     """, (limite,))
+
+def estornar_venda(id_venda):
+
+    con = get_connection()
+
+    try:
+
+        cur = con.cursor()
+
+        cur.execute("""
+            SELECT
+                iv.quantidade,
+                pr.id_produto
+            FROM itens_venda iv
+
+            JOIN precos pr
+                ON iv.id_preco = pr.id_preco
+
+            WHERE iv.id_venda = ?
+        """, (id_venda,))
+
+        itens = cur.fetchall()
+
+        if not itens:
+            raise Exception(
+                "Venda não encontrada"
+            )
+
+        for quantidade, id_produto in itens:
+
+            cur.execute("""
+                UPDATE estoque
+                SET quantidade = quantidade + ?
+                WHERE id_produto = ?
+            """, (
+                quantidade,
+                id_produto
+            ))
+
+            cur.execute("""
+                INSERT INTO movimentacoes_estoque
+                (
+                    id_produto,
+                    tipo,
+                    quantidade,
+                    motivo
+                )
+                VALUES
+                (
+                    ?,
+                    'ENTRADA',
+                    ?,
+                    'ESTORNO'
+                )
+            """, (
+                id_produto,
+                quantidade
+            ))
+
+        cur.execute("""
+            DELETE FROM vendas
+            WHERE id_venda = ?
+        """, (id_venda,))
+
+        con.commit()
+
+    except:
+
+        con.rollback()
+        raise
+
+    finally:
+
+        con.close()
