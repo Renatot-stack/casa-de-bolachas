@@ -307,6 +307,8 @@ def adicionar_estoque(id_produto, quantidade, motivo='Reposição'):
         (id_produto,)
     )
 
+    quantidade = arredondar_kg(quantidade)
+
     if produto:
         _executar('''
             UPDATE estoque
@@ -353,7 +355,7 @@ def registrar_venda(lista_produtos):
         for item in lista_produtos:
 
             id_produto = item['id_produto']
-            quantidade = item['quantidade']
+            quantidade = arredondar_kg(item['quantidade'])
 
             # verifica estoque
             cur.execute('''
@@ -529,6 +531,7 @@ def corrigir_estoque(
     novo_estoque,
     motivo='Ajuste manual'
 ):
+    novo_estoque = arredondar_kg(novo_estoque)
 
     con = get_connection()
 
@@ -847,3 +850,17 @@ def estornar_venda(id_venda):
     finally:
 
         con.close()
+
+def arredondar_kg(kilos):
+    return float(f'{kilos:.3f}')
+
+def obter_produto(id_produto):
+
+    return _buscar_um('''
+        SELECT
+            id_produto,
+            nome,
+            exige_kg
+        FROM produtos
+        WHERE id_produto = ?
+    ''', (id_produto,))

@@ -205,15 +205,22 @@ def _vendas():
 
             try:
 
-                quantidade = float(
+                valor = float(
                     item['quantidade_widget']
                     .get()
                     .replace(',', '.')
                 )
 
-                preco = item['preco']
+                if item['vende_por_kg']:
 
-                total += quantidade * preco
+                    total += valor
+
+                else:
+
+                    total += (
+                        valor
+                        * item['preco']
+                    )
 
             except:
                 pass
@@ -227,6 +234,10 @@ def _vendas():
         dados = db.pesquisar_produtos_preco_id(
             id_produto
         )[0]
+
+        produto = db.obter_produto(id_produto)
+
+        vende_por_kg = produto[2] == 1
 
         sub_widget = ctk.CTkFrame(itens)
 
@@ -265,7 +276,11 @@ def _vendas():
 
         quantidade = ctk.CTkEntry(
             sub_widget,
-            placeholder_text='Quantidade...'
+            placeholder_text=(
+                'Valor R$...'
+                if vende_por_kg
+                else 'Quantidade...'
+            )
         )
 
         quantidade.insert(0, '1')
@@ -285,7 +300,8 @@ def _vendas():
             'id_produto': id_produto,
             'quantidade_widget': quantidade,
             'widget': sub_widget,
-            'preco': dados[2]
+            'preco': dados[2],
+            'vende_por_kg': vende_por_kg
         }
 
         carrinho.append(item)
@@ -339,9 +355,20 @@ def _vendas():
                     'quantidade_widget'
                 ].get()
 
-                quantidade = float(
+                valor_digitado = float(
                     texto.replace(',', '.')
                 )
+
+                if item['vende_por_kg']:
+
+                    quantidade = (
+                        valor_digitado
+                        / item['preco']
+                    )
+
+                else:
+
+                    quantidade = valor_digitado
 
                 if quantidade <= 0:
 
@@ -349,6 +376,10 @@ def _vendas():
                         'Quantidade inválida'
                     )
 
+                quantidade = float(
+                    f'{quantidade:.3f}'
+                )
+                
                 produtos.append({
                     'id_produto': item['id_produto'],
                     'quantidade': quantidade
@@ -614,7 +645,7 @@ def _cadastrar_estoque():
 
             db.adicionar_estoque(
                 id_produto,
-                quantidade
+                db.arredondar_kg(quantidade)
             )
 
         except Exception as erro:
@@ -694,6 +725,7 @@ def _configuracoes():
         text='Estornar Pedido',
         height=50,
         fg_color='red',
+        hover_color="#5E0202",
         command=lambda:
             _main_frame_atualizar(
                 _estornar_pedido
@@ -722,6 +754,24 @@ def _configuracoes():
         sticky='ew'
     )
 
+    ctk.CTkButton(
+        frame,
+        fg_color='green',
+        hover_color="#096806",
+        text='Lucros',
+        height=50,
+        command=lambda:
+            _main_frame_atualizar(
+                _lucros
+            )
+    ).grid(
+        row=3,
+        column=0,
+        padx=20,
+        pady=10,
+        sticky='ew'
+    )
+    
     frame.grid(
         row=1,
         column=0,
