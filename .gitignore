@@ -417,4 +417,4 @@ FodyWeavers.xsd
 *.msm
 *.msp
 venv
-bolachas.db
+.banco.db

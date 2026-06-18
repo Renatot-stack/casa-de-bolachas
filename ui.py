@@ -4,11 +4,20 @@ import database as db
 import webbrowser
 
 # Cores
-marrom_c = "#E8AF76"
-marrom = "#BC7F43"
-marrom_e = "#43280C"
-marrom_bonito = "#724100"
-cinza = "#BDBDBD"
+beige = "#EEEEEE"
+vermelho = "#FF0000"
+vermelho_h = "#881111"
+branco = "#FFFFFF"
+cinza = "#E0E0E0"
+marrom_c = "#242424"
+branco = "#FFFFFF"
+branco_e = "#666666"
+branco_hover = "#333333"
+cinza_e = "#AAAAAA"
+verde = "#00941E"
+verde_h = "#007417"
+text_cor = "#00FF33"
+cinza = "#5F5F5F"
 
 # Inicia o Banco
 db.init_db()
@@ -21,6 +30,23 @@ def m_sucesso(title, message):
     CTkMessagebox(janela, title=title, message=message, icon='check')
 
 # Funções:
+
+def validar_preco(texto):
+    if texto == "":
+        return True
+
+    # troca vírgula por ponto para facilitar a validação
+    texto = texto.replace(",", ".")
+
+    # não permite mais de um ponto
+    if texto.count(".") > 1:
+        return False
+
+    try:
+        float(texto)
+        return True
+    except ValueError:
+        return False
 
 def produtos_cadastrados(f):
         lista_produtos = ctk.CTkScrollableFrame(
@@ -162,6 +188,7 @@ def _vendas():
     )
 
     resultados = ctk.CTkScrollableFrame(frame)
+    resultados.columnconfigure(0, weight=1)
 
     resultados.grid(
         row=1,
@@ -171,7 +198,7 @@ def _vendas():
         pady=5
     )
 
-    itens = ctk.CTkScrollableFrame(frame, fg_color=cinza)
+    itens = ctk.CTkScrollableFrame(frame, fg_color=beige)
 
     itens.columnconfigure(0, weight=1)
 
@@ -320,8 +347,9 @@ def _vendas():
             text='X',
             width=10,
             corner_radius=8,
-            fg_color='red',
-            text_color='white',
+            fg_color=vermelho,
+            hover_color='bold',
+            text_color=branco,
             command=remover
         ).grid(
             column=4,
@@ -436,12 +464,14 @@ def _vendas():
 
         if not produtos:
 
-            widget = ctk.CTkFrame(resultados)
+            widget = ctk.CTkFrame(resultados, fg_color=cinza)
 
             ctk.CTkLabel(
                 widget,
-                text='Nenhum produto encontrado'
+                text='Nenhum produto encontrado',
+                text_color=branco
             ).grid(
+                column=2,
                 padx=5,
                 pady=2,
                 sticky='nsew'
@@ -453,14 +483,18 @@ def _vendas():
             )
 
             return
+        
+        resultados.columnconfigure(0, weight=1)
 
         for produto in produtos:
 
-            widget = ctk.CTkFrame(resultados)
+            widget = ctk.CTkFrame(resultados, fg_color=cinza)
 
             ctk.CTkLabel(
                 widget,
-                text=f'ID: {produto[0]}'
+                text=f'ID: {produto[0]}',
+                text_color=branco,
+                font=('Consolas', 10)
             ).grid(
                 padx=5,
                 pady=2,
@@ -470,7 +504,9 @@ def _vendas():
 
             ctk.CTkLabel(
                 widget,
-                text=produto[1]
+                text=produto[1],
+                text_color='gold',
+                font=('Arial', 15)
             ).grid(
                 padx=5,
                 pady=2,
@@ -478,20 +514,26 @@ def _vendas():
                 column=1
             )
 
+            widget.columnconfigure(2, weight=1)
+
             ctk.CTkLabel(
                 widget,
-                text=f'R$ {produto[2]:.2f}'
+                text=f'R$ {produto[2]:.2f}',
+                text_color=text_cor,
+                font=('Arial', 18)
             ).grid(
                 padx=5,
                 pady=2,
                 row=0,
-                column=2
+                column=2,
+                sticky='e'
             )
 
             widget.grid(
                 column=0,
                 padx=5,
-                pady=2
+                pady=2,
+                sticky='ew'
             )
 
             deixar_clicavel(
@@ -547,7 +589,8 @@ def _registrar_produto():
             m_erro(e)
             return
         m_sucesso('Dados inseridos!', 'O novo produto já está pronto para venda!')
-        _main_frame_atualizar(_vendas)
+
+        _main_frame_atualizar(_registrar_produto)
     
     button_enviar = ctk.CTkButton(frame, text='Enviar', command= __registrar_produto)
     button_enviar.grid(row=4, column=1, sticky='s', padx=2, pady=5)
@@ -658,7 +701,8 @@ def _cadastrar_estoque():
             'Quantidade adicionada com sucesso'
         )
 
-        _main_frame_atualizar(_vendas)
+        _main_frame_atualizar(_cadastrar_estoque)
+
 
     ctk.CTkButton(
         frame,
@@ -1113,7 +1157,7 @@ def _lucros():
 
     ctk.CTkButton(
         botoes,
-        text='Week',
+        text='Semana',
         command=mostrar_semana
     ).pack(side='left', padx=5)
 
@@ -1162,12 +1206,14 @@ def atualizar_historico():
         total = venda[2]
 
         item = ctk.CTkFrame(
-            historico_frame
+            historico_frame,
+            fg_color=cinza
         )
 
         ctk.CTkLabel(
             item,
-            text=f'Pedido #{id_venda}'
+            text=f'Pedido #{id_venda}',
+            text_color=branco
         ).pack(
             anchor='w',
             padx=5,
@@ -1176,7 +1222,8 @@ def atualizar_historico():
 
         ctk.CTkLabel(
             item,
-            text=data
+            text=data,
+            text_color=branco
         ).pack(
             anchor='w',
             padx=5
@@ -1185,7 +1232,7 @@ def atualizar_historico():
         ctk.CTkLabel(
             item,
             text=f'R$ {total:.2f}',
-            text_color='green'
+            text_color=text_cor
         ).pack(
             anchor='w',
             padx=5,
@@ -1282,7 +1329,7 @@ def atualizar_alertas():
         alerta_btn.configure(
             text='Estoque OK',
             fg_color='green',
-            text_color='white'
+            text_color=branco
         )
 
     else:
@@ -1355,9 +1402,7 @@ def _estornar_pedido():
             'Venda cancelada'
         )
 
-        _main_frame_atualizar(
-            _estornar_pedido
-        )
+        _main_frame_atualizar(_vendas)
 
     ctk.CTkButton(
         frame,
@@ -1427,7 +1472,8 @@ def _ajuste_manual():
             'Estoque corrigido'
         )
 
-        _main_frame_atualizar(_vendas)
+        _main_frame_atualizar(_ajuste_manual)
+
 
     ctk.CTkButton(
         frame,
@@ -1450,7 +1496,7 @@ def _ajuste_manual():
 
 # Janela principal
 janela = ctk.CTk(fg_color=marrom_c)
-janela.title('Casa de Bolachas - Sistema de Estoque')
+janela.title('São João ETE - Sistema de Estoque')
 janela.minsize(800, 300)
 
 # Janela configuração
@@ -1462,11 +1508,11 @@ janela.rowconfigure(1, weight=1)
 header_frame = ctk.CTkFrame(janela)
 header_frame.grid(row=0, column=0, pady=5, padx=5, sticky='we', columnspan=2)
 header_frame.columnconfigure(0, weight=1)
-ctk.CTkLabel(header_frame, text='🍪 Casa de Bolachas 🍪', font=('Arial', 20)).grid(row=0, column=0, padx=5, pady=5, sticky='ew', columnspan=2)
+ctk.CTkLabel(header_frame, text='Sistema de Estoque', font=('Arial', 20)).grid(row=0, column=0, padx=5, pady=5, sticky='ew', columnspan=2)
 
 # Div Casa de Bolachas
 
-frame_bolacha = ctk.CTkFrame(janela, fg_color=marrom)
+frame_bolacha = ctk.CTkFrame(janela, fg_color=branco)
 frame_bolacha.grid(row=1, column=0, padx=5, pady=5, sticky='nsew')
 
 # Frame Bolacha configuração
@@ -1481,18 +1527,19 @@ top_frame.grid(row=0, column=0, padx=5, pady=5, sticky='nsew')
 top_frame.columnconfigure(3, weight=1)
 
 # Botão registrar produto 
-registrar_prod = ctk.CTkButton(top_frame, text='Registrar Produto', fg_color=marrom_e, command=lambda: _main_frame_atualizar(_registrar_produto))
-registrar_prod.grid(row=0, column=0, padx=10, pady=10)
+registrar_prod = ctk.CTkButton(top_frame, text='Registrar Produto', fg_color=branco_e, hover_color=branco_hover, command=lambda: _main_frame_atualizar(_registrar_produto))
+registrar_prod.grid(row=0, column=1, padx=10, pady=10)
 
 # Botão novo pedido
-novo_pedido = ctk.CTkButton(top_frame, text='Novo Pedido', fg_color=marrom_e, command=lambda: _main_frame_atualizar(_vendas))
-novo_pedido.grid(row=0, column=1, padx=10, pady=10)
+novo_pedido = ctk.CTkButton(top_frame, text='Novo Pedido', fg_color=branco_e, hover_color=branco_hover, command=lambda: _main_frame_atualizar(_vendas))
+novo_pedido.grid(row=0, column=0, padx=10, pady=10)
 
 # Botão cadastrar estoque
 cadastrar_estoque = ctk.CTkButton(
     top_frame,
     text='Cadastrar Estoque',
-    fg_color=marrom_e,
+    fg_color=branco_e,
+    hover_color=branco_hover,
     command=lambda: _main_frame_atualizar(_cadastrar_estoque)
 )
 
@@ -1505,14 +1552,14 @@ cadastrar_estoque.grid(
 )
 
 # Botão ver lucros
-ver_lucro = ctk.CTkButton(
-    top_frame,
-    text='Lucros',
-    command=lambda: _main_frame_atualizar(_lucros),
-    fg_color='green',
-    hover_color="#072A00"
-)
-ver_lucro.grid(row=0, column=3, padx=10, pady=10, sticky='e')
+# ver_lucro = ctk.CTkButton(
+#     top_frame,
+#     text='Lucros',
+#     command=lambda: _main_frame_atualizar(_lucros),
+#     fg_color='green',
+#     hover_color="#072A00"
+# )
+# ver_lucro.grid(row=0, column=3, padx=10, pady=10, sticky='e')
 
 # Div do meio / central / centro
 
@@ -1525,7 +1572,7 @@ main_frame.rowconfigure(1, weight=1)
 main_frame.grid(row=1, column=0, padx=5, pady=5, sticky='nsew')
 
 # Título do frame
-title_main_frame = ctk.CTkLabel(main_frame, text='Sistema de Gerenciamento de lucros, estoque, pedidos...', text_color='white', bg_color=marrom_bonito, corner_radius=10)
+title_main_frame = ctk.CTkLabel(main_frame, text='Sistema de Gerenciamento de lucros, estoque, pedidos...', text_color=branco, bg_color=cinza_e, corner_radius=10)
 title_main_frame.grid(row=0, column=0, sticky='ew')
 
 _vendas()
@@ -1550,8 +1597,8 @@ config_frame.columnconfigure(0, weight=1)
 
 ctk.CTkLabel(
     config_frame,
-    text='📜 Histórico',
-    font=('Arial', 18)
+    text='Histórico',
+    font=('Consolas', 18)
 ).grid(
     row=0,
     column=0,
@@ -1579,7 +1626,8 @@ right_frame.rowconfigure(
 configuracoes = ctk.CTkButton(
     top_frame,
     text='Configurações',
-    fg_color=marrom_e,
+    fg_color=branco_e,
+    hover_color=branco_hover,
     command=lambda:
         _main_frame_atualizar(
             _configuracoes
@@ -1608,7 +1656,6 @@ alerta_btn.pack(
     padx=5,
     pady=5
 )
-
 atualizar_alertas()
 atualizar_historico()
 janela.mainloop()
