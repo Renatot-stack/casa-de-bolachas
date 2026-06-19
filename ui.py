@@ -2,6 +2,35 @@ import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 import database as db
 import webbrowser
+import re
+
+# Função para campos de preço
+def validar_decimal(texto):
+    if texto == "":
+        return True
+
+    return bool(
+        re.fullmatch(
+            r"\d+([.,]\d{0,2})?",
+            texto
+        )
+    )
+
+def vcmd_decimal(widget_pai):
+    return (
+        widget_pai.register(validar_decimal),
+        "%P"
+    )
+
+# Função para campos de ID
+def validar_inteiro(texto):
+    return texto.isdigit() or texto == ""
+
+def vcmd_inteiro(widget_pai):
+    return (
+        widget_pai.register(validar_inteiro),
+        "%P"
+    )
 
 # Cores
 beige = "#EEEEEE"
@@ -48,10 +77,10 @@ def validar_preco(texto):
     except ValueError:
         return False
 
-def produtos_cadastrados(f):
+def produtos_cadastrados(f, entry_id=None):
         lista_produtos = ctk.CTkScrollableFrame(
             f,
-            height=250
+            height=250,
         )
 
         lista_produtos.grid(
@@ -78,7 +107,7 @@ def produtos_cadastrados(f):
 
             ctk.CTkLabel(
                 item,
-                text=f'ID: {id_produto}'
+                text=f'ID: {id_produto}',
             ).grid(
                 row=0,
                 column=0,
@@ -122,6 +151,16 @@ def produtos_cadastrados(f):
                 padx=2,
                 pady=2
             )
+
+            if entry_id:
+                def selecionar(event, id=id_produto):
+                    entry_id.delete(0, "end")
+                    entry_id.insert(0, str(id))
+
+                item.bind("<Button-1>", selecionar)
+
+                for filho in item.winfo_children():
+                    filho.bind("<Button-1>", selecionar)
 
 def _main_frame_atualizar(_funcao):
     for i, widget in enumerate(main_frame.winfo_children()):
@@ -307,7 +346,9 @@ def _vendas():
                 'Valor R$...'
                 if vende_por_kg
                 else 'Quantidade...'
-            )
+            ),
+            validate='key',
+            validatecommand=vcmd_decimal(frame)
         )
 
         quantidade.insert(0, '1')
@@ -570,11 +611,11 @@ def _registrar_produto():
     exige_peso.grid(row=3, column=1, padx=2, pady=5)
 
     ctk.CTkLabel(frame, text='Preço de venda:').grid(row=1, column=0, padx=2, pady=5)
-    entry_preco_venda = ctk.CTkEntry(frame, placeholder_text='Preço...')
+    entry_preco_venda = ctk.CTkEntry(frame, placeholder_text='Preço...', validate='key', validatecommand=vcmd_decimal(frame))
     entry_preco_venda.grid(row=1, column=1, padx=2, pady=5)
 
     ctk.CTkLabel(frame, text='Preço de compra:').grid(row=2, column=0, padx=2, pady=5)
-    entry_preco_compra = ctk.CTkEntry(frame, placeholder_text='Preço...')
+    entry_preco_compra = ctk.CTkEntry(frame, placeholder_text='Preço...', validate='key', validatecommand=vcmd_decimal(frame))
     entry_preco_compra.grid(row=2, column=1, padx=2, pady=5)
 
     def __registrar_produto():
@@ -634,7 +675,9 @@ def _cadastrar_estoque():
 
     entry_id = ctk.CTkEntry(
         frame,
-        placeholder_text='ID...'
+        placeholder_text='ID...',
+        validate='key',
+        validatecommand=vcmd_inteiro(frame)
     )
 
     entry_id.grid(
@@ -648,7 +691,9 @@ def _cadastrar_estoque():
     # Quantidade
     ctk.CTkLabel(
         frame,
-        text='Quantidade:'
+        text='Quantidade:',
+        validate='key',
+        validatecommand=vcmd_inteiro(frame)
     ).grid(
         row=1,
         column=0,
@@ -730,7 +775,7 @@ def _cadastrar_estoque():
         sticky='w'
     )
 
-    produtos_cadastrados(frame)
+    produtos_cadastrados(frame, entry_id)
 
     frame.grid(
         row=1,
@@ -837,7 +882,11 @@ def _estoque_minimo():
         text='ID do Produto:'
     ).grid(row=0, column=0, padx=5, pady=5)
 
-    entry_id = ctk.CTkEntry(frame)
+    entry_id = ctk.CTkEntry(
+        frame,
+        validate='key',
+        validatecommand=vcmd_inteiro(frame)
+        )
     entry_id.grid(row=0, column=1, padx=5, pady=5)
 
     ctk.CTkLabel(
@@ -845,7 +894,11 @@ def _estoque_minimo():
         text='Estoque mínimo:'
     ).grid(row=1, column=0, padx=5, pady=5)
 
-    entry_minimo = ctk.CTkEntry(frame)
+    entry_minimo = ctk.CTkEntry(
+        frame,
+        validate='key',
+        validatecommand=vcmd_decimal(frame)
+        )
     entry_minimo.grid(row=1, column=1, padx=5, pady=5)
 
     def carregar():
@@ -911,7 +964,7 @@ def _estoque_minimo():
         sticky='nsew'
     )
 
-    produtos_cadastrados(frame)
+    produtos_cadastrados(frame, entry_id)
 
 
 def _lucros():
@@ -1360,7 +1413,11 @@ def _estornar_pedido():
         pady=5
     )
 
-    entry_id = ctk.CTkEntry(frame)
+    entry_id = ctk.CTkEntry(
+        frame,
+        validate='key',
+        validatecommand=vcmd_inteiro(frame)
+        )
 
     entry_id.grid(
         row=1,
@@ -1437,7 +1494,11 @@ def _ajuste_manual():
         text='ID Produto'
     ).grid(row=0, column=0, padx=5, pady=5)
 
-    entry_id = ctk.CTkEntry(frame)
+    entry_id = ctk.CTkEntry(
+        frame,
+        validate='key',
+        validatecommand=vcmd_inteiro(frame)
+        )
     entry_id.grid(row=0, column=1, padx=5, pady=5)
 
     ctk.CTkLabel(
@@ -1486,7 +1547,7 @@ def _ajuste_manual():
         padx=5
     )
 
-    produtos_cadastrados(frame)
+    produtos_cadastrados(frame, entry_id)
 
     frame.grid(
         row=1,
